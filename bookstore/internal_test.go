@@ -1,25 +1,29 @@
+// +build int
+
 package bookstore_test
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
+	"os"
 	"testing"
 
 	"bookstore/bookstore"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/robojandro/go-pgtesthelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBookstore(t *testing.T) {
-	testDB, store := GetDB(t, "dev", "playground")
-	LoadData(t, testDB, "./testdata/mockdb.json")
-	defer cleanData(testDB, []string{"books"})
+	h := initializeTestDB(t)
+	defer h.CleanUp()
+
+	store := bookstore.NewBookstore(h.TestDB())
+
 	t.Run("ReadBooks", func(t *testing.T) {
-		books := store.ReadBooks()
+		books, err := store.ReadBooks()
+		require.NoError(t, err)
 		assert.NotNil(t, books)
 		assert.Equal(t, "cb0b9721-7631-4b2a-94a2-493c559da893", books[0].ID)
 		assert.Equal(t, "titleA", books[0].Title)
@@ -28,36 +32,52 @@ func TestBookstore(t *testing.T) {
 	})
 }
 
-func GetDB(t *testing.T, dbUser, dbName string) (*sqlx.DB, bookstore.Store) {
-	testDB, err := bookstore.ConnectDB(dbUser, dbName)
+func initializeTestDB(t *testing.T) *pgtesthelper.Helper {
+	var (
+		schemaPath = "../sql/authors_books.sql"
+		keepDB     = false
+		dbPrefix   = "bookstore_testing"
+		dbUser     = ""
+		dbPass     = ""
+	)
+
+	if dbUser = os.Getenv("bookstore_dbuser"); dbUser == "" {
+		t.Skip("missing env variable bookstore_dbuser")
+	}
+	if dbPass = os.Getenv("bookstore_dbpass"); dbPass == "" {
+		t.Skip("missing env variable bookstore_dbuser")
+	}
+
+	h, err := pgtesthelper.NewHelper(schemaPath, dbPrefix, dbUser, dbPass, keepDB)
 	require.NoError(t, err)
-	return testDB, bookstore.NewBookstore(testDB)
+
+	err = h.CreateTestingDB()
+	require.NoError(t, err)
+
+	mockDB := "./testdata/mockdb.json"
+	err = h.ParseMockData(mockDB, func(mockData []byte) error {
+		return json.Unmarshal(mockData, &data)
+	})
+	require.NoError(t, err)
+
+	err = h.LoadData("./testdata/mockdb.json", insertTestData)
+	require.NoError(t, err)
+
+	return &h
 }
 
 type mockContents struct {
 	Books []bookstore.Book `json:"books"`
 }
 
-func LoadData(t *testing.T, db *sqlx.DB, mockDataFile string) {
-	data, err := ioutil.ReadFile(mockDataFile)
-	require.NoError(t, err)
-	//fmt.Printf("data: %s\n", data)
+var data mockContents
 
-	var mocked mockContents
-	err = json.Unmarshal(data, &mocked)
-	require.NoError(t, err)
-
-	//fmt.Printf("mocked: % #v\n", pretty.Formatter(mocked))
-	err = insertBooks(db, mocked.Books)
-	require.NoError(t, err)
-}
-
-func insertBooks(db *sqlx.DB, books []bookstore.Book) error {
+var insertTestData = func(db *sqlx.DB) error {
 	tx := db.MustBegin()
 	bookIn :=
 		`INSERT INTO books (id, title, isbn, created_at, updated_at)
-		VALUES (:id, :title, :isbn, NOW(), NOW());`
-	for _, book := range books {
+			        VALUES (:id, :title, :isbn, NOW(), NOW());`
+	for _, book := range data.Books {
 		_, err := tx.NamedExec(bookIn, book)
 		if err != nil {
 			tx.Rollback()
@@ -68,19 +88,4 @@ func insertBooks(db *sqlx.DB, books []bookstore.Book) error {
 		return err
 	}
 	return nil
-}
-
-func cleanData(db *sqlx.DB, tables []string) {
-	tx := db.MustBegin()
-	for _, table := range tables {
-		log.Printf("clearing out table: %s\n", table)
-		res := tx.MustExec(fmt.Sprintf("TRUNCATE TABLE %s", table))
-		if res == nil {
-			tx.Rollback()
-			panic("failed truncating")
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		panic(err)
-	}
 }
