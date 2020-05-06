@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 
 	"bookstore/bookstore"
 
@@ -9,14 +11,28 @@ import (
 )
 
 func main() {
-	db, err := bookstore.ConnectDB("dev", "playground")
+	var dbUser, dbPass, dbName string
+	if dbUser = os.Getenv("bookstore_dbuser"); dbUser == "" {
+		log.Fatal("missing env variable bookstore_dbuser")
+	}
+	if dbPass = os.Getenv("bookstore_dbpass"); dbPass == "" {
+		log.Fatal("missing env variable bookstore_dbpass")
+	}
+	if dbName = os.Getenv("bookstore_dbname"); dbName == "" {
+		log.Fatal("missing env variable bookstore_dbname")
+	}
+
+	db, err := bookstore.ConnectDB(dbUser, dbPass, dbName)
 	if err != nil {
 		panic(err)
 	}
 
 	store := bookstore.NewBookstore(db)
-	books := store.ReadBooks()
+	books, err := store.ReadBooks()
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Printf("dump: % #v\n", pretty.Formatter(books))
-	fmt.Printf("dump: %s\n", books[0].ISBN)
+	fmt.Printf("books: % #v\n", pretty.Formatter(books))
+	//fmt.Printf("ISBN: %s\n", books[0].ISBN)
 }

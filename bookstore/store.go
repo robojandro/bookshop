@@ -15,8 +15,8 @@ func NewBookstore(db *sqlx.DB) Store {
 	return Store{db: db}
 }
 
-func ConnectDB(user, dbname string) (*sqlx.DB, error) {
-	db, err := sqlx.Connect("postgres", fmt.Sprintf("user=%s dbname=%s sslmode=disable", user, dbname))
+func ConnectDB(dbUser, dbPass, dbName string) (*sqlx.DB, error) {
+	db, err := sqlx.Connect("postgres", fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", dbUser, dbPass, dbName))
 	if err != nil {
 		return nil, errors.Wrap(err, "db connection error")
 	}
