@@ -17,5 +17,7 @@ TODO:
   - [x] books
   - [ ] authors
 - [ ] service layer with business logic and tests
+  - [ ] books
+  - [ ] authors
 - [ ] http REST server and tests
 

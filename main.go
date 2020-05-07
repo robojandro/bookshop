@@ -5,29 +5,30 @@ import (
 	"log"
 	"os"
 
-	"bookstore/bookstore"
+	"bookshop/books"
+	"bookshop/datastore"
 
 	"github.com/kr/pretty"
 )
 
 func main() {
 	var dbUser, dbPass, dbName string
-	if dbUser = os.Getenv("bookstore_dbuser"); dbUser == "" {
-		log.Fatal("missing env variable bookstore_dbuser")
+	if dbUser = os.Getenv("bookshop_dbuser"); dbUser == "" {
+		log.Fatal("missing env variable bookshop_dbuser")
 	}
-	if dbPass = os.Getenv("bookstore_dbpass"); dbPass == "" {
-		log.Fatal("missing env variable bookstore_dbpass")
+	if dbPass = os.Getenv("bookshop_dbpass"); dbPass == "" {
+		log.Fatal("missing env variable bookshop_dbpass")
 	}
-	if dbName = os.Getenv("bookstore_dbname"); dbName == "" {
-		log.Fatal("missing env variable bookstore_dbname")
+	if dbName = os.Getenv("bookshop_dbname"); dbName == "" {
+		log.Fatal("missing env variable bookshop_dbname")
 	}
 
-	db, err := bookstore.ConnectDB(dbUser, dbPass, dbName)
+	data, err := datastore.ConnectDB(dbUser, dbPass, dbName)
 	if err != nil {
 		panic(err)
 	}
 
-	store := bookstore.NewBookstore(db)
+	store := books.NewBookStore(data)
 	books, err := store.ReadBooks()
 	if err != nil {
 		panic(err)

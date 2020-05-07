@@ -1,6 +1,6 @@
 // +build int
 
-package bookstore_test
+package books_test
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"bookstore/bookstore"
+	"bookshop/books"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/robojandro/go-pgtesthelper"
@@ -16,44 +16,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBookstore(t *testing.T) {
+func TestBooks(t *testing.T) {
 	h, dbh := initializeTestDB(t)
 	defer h.CleanUp()
 
-	store := bookstore.NewBookstore(dbh)
+	store := books.NewBookStore(dbh)
 
 	t.Run("ReadBooks", func(t *testing.T) {
-		books, err := store.ReadBooks()
+		bks, err := store.ReadBooks()
 		require.NoError(t, err)
-		assert.NotNil(t, books)
-		assert.Equal(t, "cb0b9721-7631-4b2a-94a2-493c559da893", books[0].ID)
-		assert.Equal(t, "titleA", books[0].Title)
-		assert.Equal(t, "9783161484100", string(books[0].ISBN))
+		assert.NotNil(t, bks)
+		assert.Equal(t, "cb0b9721-7631-4b2a-94a2-493c559da893", bks[0].ID)
+		assert.Equal(t, "titleA", bks[0].Title)
+		assert.Equal(t, "9783161484100", string(bks[0].ISBN))
 
 		// test formatting of our to-string function
-		assert.Equal(t, "978-3-16-148410-0", books[0].ISBN.String())
+		assert.Equal(t, "978-3-16-148410-0", bks[0].ISBN.String())
+	})
+
+	t.Run("ReadBookByISBN", func(t *testing.T) {
+		isbn := "9783161484100"
+		bk, err := store.ReadBookByISBN(isbn)
+		require.NoError(t, err)
+		assert.NotNil(t, bk)
+		assert.Equal(t, "cb0b9721-7631-4b2a-94a2-493c559da893", bk.ID)
+		assert.Equal(t, "titleA", bk.Title)
+		assert.Equal(t, "9783161484100", string(bk.ISBN))
 	})
 
 	t.Run("InsertBooks", func(t *testing.T) {
-		books := []bookstore.Book{
+		bks := []books.Book{
 			{
 				ID:    "abc02",
 				Title: "titleB",
 				ISBN:  "2222222222222",
 			},
 		}
-		err := store.InsertBooks(books)
+		err := store.InsertBooks(bks)
 		require.NoError(t, err)
 
 		results, err := store.ReadBooks()
 		assert.Len(t, results, 2)
-		assert.Equal(t, books[0].ID, results[1].ID)
-		assert.Equal(t, books[0].Title, results[1].Title)
-		assert.Equal(t, books[0].ISBN, results[1].ISBN)
+		assert.Equal(t, bks[0].ID, results[1].ID)
+		assert.Equal(t, bks[0].Title, results[1].Title)
+		assert.Equal(t, bks[0].ISBN, results[1].ISBN)
 	})
 
 	t.Run("DeleteBooks", func(t *testing.T) {
-		books := []bookstore.Book{
+		bks := []books.Book{
 			{
 				ID:    "def03",
 				Title: "titleC",
@@ -65,7 +75,7 @@ func TestBookstore(t *testing.T) {
 				ISBN:  "4444444444444",
 			},
 		}
-		err := store.InsertBooks(books)
+		err := store.InsertBooks(bks)
 		require.NoError(t, err)
 
 		err = store.DeleteBooks("def03", "ghi04")
@@ -86,17 +96,17 @@ func TestBookstore(t *testing.T) {
 		err := h.CleanTables([]string{"books"})
 		require.NoError(t, err)
 
-		books := []bookstore.Book{
+		bks := []books.Book{
 			{
 				ID:    "abc01",
 				Title: "titleA",
 				ISBN:  "1111111111111",
 			},
 		}
-		err = store.InsertBooks(books)
+		err = store.InsertBooks(bks)
 		require.NoError(t, err)
 
-		upsert := []bookstore.Book{
+		upsert := []books.Book{
 			{
 				ID:    "abc01",
 				Title: "titleXXXX",
@@ -129,16 +139,16 @@ func initializeTestDB(t *testing.T) (*pgtesthelper.Helper, *sqlx.DB) {
 	var (
 		schemaPath = "../sql/authors_books.sql"
 		keepDB     = false
-		dbPrefix   = "bookstore_testing"
+		dbPrefix   = "books_testing"
 		dbUser     = ""
 		dbPass     = ""
 	)
 
-	if dbUser = os.Getenv("bookstore_dbuser"); dbUser == "" {
-		t.Skip("missing env variable bookstore_dbuser")
+	if dbUser = os.Getenv("bookshop_dbuser"); dbUser == "" {
+		t.Skip("missing env variable bookshop_dbuser")
 	}
-	if dbPass = os.Getenv("bookstore_dbpass"); dbPass == "" {
-		t.Skip("missing env variable bookstore_dbuser")
+	if dbPass = os.Getenv("bookshop_dbpass"); dbPass == "" {
+		t.Skip("missing env variable bookshop_dbuser")
 	}
 
 	h, err := pgtesthelper.NewHelper(schemaPath, dbPrefix, dbUser, dbPass, keepDB)
@@ -160,7 +170,7 @@ func initializeTestDB(t *testing.T) (*pgtesthelper.Helper, *sqlx.DB) {
 }
 
 type mockContents struct {
-	Books []bookstore.Book `json:"books"`
+	Books []books.Book `json:"books"`
 }
 
 func insertTestData(dbh *sqlx.DB, data mockContents) error {

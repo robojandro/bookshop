@@ -1,31 +1,48 @@
-package bookstore
+package books
 
 import (
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 )
 
-// ReadBooks will return a list of all books.
-func (s *Store) ReadBooks() ([]Book, error) {
-	books := []Book{}
-	if err := s.db.Select(&books, "SELECT * FROM books ORDER BY title ASC"); err != nil {
-		return nil, errors.Wrap(err, "failed to read books")
-	}
-	return books, nil
+type BookStore struct {
+	db *sqlx.DB
 }
 
-// InsertBooks will insert one book.
-func (s *Store) InsertBooks(books []Book) error {
+func NewBookStore(db *sqlx.DB) BookStore {
+	return BookStore{db: db}
+}
+
+// ReadBooks will return a list of all books.
+func (s *BookStore) ReadBooks() ([]Book, error) {
+	bks := []Book{}
+	if err := s.db.Select(&bks, "SELECT * FROM books ORDER BY title ASC"); err != nil {
+		return nil, errors.Wrap(err, "failed to read books")
+	}
+	return bks, nil
+}
+
+// ReadBookByISBN will return the given book looked up by isbn.
+func (s *BookStore) ReadBookByISBN(isbn string) (Book, error) {
+	bk := Book{}
+	row := s.db.QueryRowx("SELECT * FROM books WHERE isbn=$1", isbn)
+	if err := row.Scan(&bk.ID, &bk.Title, &bk.ISBN, &bk.UpdatedAt); err != nil {
+		return bk, errors.Wrap(err, "failed to read book")
+	}
+	return bk, nil
+}
+
+// InsertBooks will insert a list of books.
+func (s *BookStore) InsertBooks(bks []Book) error {
 	tx := s.db.MustBegin()
 	bookIns :=
 		`INSERT INTO books (id, title, isbn, updated_at)
 			        VALUES (:id, :title, :isbn, NOW());`
-	for _, book := range books {
+	for _, book := range bks {
 		_, err := tx.NamedExec(bookIns, book)
 		if err != nil {
 			if err := tx.Rollback(); err != nil {
@@ -41,7 +58,7 @@ func (s *Store) InsertBooks(books []Book) error {
 }
 
 // DeleteBooks will delete of books by their ID.
-func (s *Store) DeleteBooks(ids ...string) error {
+func (s *BookStore) DeleteBooks(ids ...string) error {
 	if len(ids) == 0 {
 		return errors.New("no ids submitted to delete")
 	}
@@ -62,8 +79,8 @@ func (s *Store) DeleteBooks(ids ...string) error {
 }
 
 // UpsertBooks will modify or add the books in the given list.
-func (s *Store) UpsertBooks(books []Book) error {
-	if len(books) == 0 {
+func (s *BookStore) UpsertBooks(bks []Book) error {
+	if len(bks) == 0 {
 		return errors.New("no books to upsert")
 	}
 	tx := s.db.MustBegin()
@@ -81,7 +98,7 @@ func (s *Store) UpsertBooks(books []Book) error {
 
 	var qryRows []string
 	var qryArgs []interface{}
-	for _, b := range books {
+	for _, b := range bks {
 		qryRows = append(qryRows, sqlValues)
 		qryArgs = append(qryArgs, b.ID)
 		qryArgs = append(qryArgs, b.Title)

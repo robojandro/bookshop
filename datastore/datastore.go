@@ -1,4 +1,4 @@
-package bookstore
+package datastore
 
 import (
 	"fmt"
@@ -7,12 +7,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Store struct {
-	db *sqlx.DB
+type Datastore struct {
+	DB *sqlx.DB
 }
 
-func NewBookstore(db *sqlx.DB) Store {
-	return Store{db: db}
+func NewDatastore(db *sqlx.DB) Datastore {
+	return Datastore{DB: db}
 }
 
 func ConnectDB(dbUser, dbPass, dbName string) (*sqlx.DB, error) {
