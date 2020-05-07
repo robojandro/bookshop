@@ -48,7 +48,7 @@ func TestService(t *testing.T) {
 		})
 	})
 
-	t.Run("AllBooks", func(t *testing.T) {
+	t.Run("GetAllBooks", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			mockBkStore := &mockBookStore{}
 			srv := service.NewService(mockBkStore)
@@ -61,7 +61,7 @@ func TestService(t *testing.T) {
 				},
 			}
 
-			results, err := srv.AllBooks()
+			results, err := srv.GetAllBooks()
 			assert.NoError(t, err)
 			assert.Len(t, results, 1)
 			assert.Equal(t, mockBooks, results)
@@ -73,9 +73,50 @@ func TestService(t *testing.T) {
 			mockBooks = nil
 			mockBooksErr = errors.New("datastore error")
 
-			results, err := srv.AllBooks()
+			results, err := srv.GetAllBooks()
 			assert.Error(t, err)
 			assert.Nil(t, results)
+		})
+	})
+
+	t.Run("RemoveBooks", func(t *testing.T) {
+		t.Run("happy", func(t *testing.T) {
+			mockBkStore := &mockBookStore{}
+			srv := service.NewService(mockBkStore)
+			mockBooksErr = nil
+			err := srv.RemoveBooks("abc01", "def02")
+			assert.NoError(t, err)
+		})
+
+		t.Run("datastore error", func(t *testing.T) {
+			mockBkStore := &mockBookStore{}
+			srv := service.NewService(mockBkStore)
+			mockBooksErr = errors.New("datastore error")
+			err := srv.RemoveBooks("abc01", "def02")
+			assert.Error(t, err)
+		})
+	})
+
+	t.Run("UpdateBook", func(t *testing.T) {
+		mockBook = books.Book{
+			ID:    "abc01",
+			Title: "titleA",
+			ISBN:  "9783161484100",
+		}
+		t.Run("happy", func(t *testing.T) {
+			mockBkStore := &mockBookStore{}
+			srv := service.NewService(mockBkStore)
+			mockBooksErr = nil
+			err := srv.UpdateBook(mockBook)
+			assert.NoError(t, err)
+		})
+
+		t.Run("datastore error", func(t *testing.T) {
+			mockBkStore := &mockBookStore{}
+			srv := service.NewService(mockBkStore)
+			mockBooksErr = errors.New("datastore error")
+			err := srv.UpdateBook(mockBook)
+			assert.Error(t, err)
 		})
 	})
 }

@@ -9,27 +9,27 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Store provides an interface for interacting with groups.
+// BookDataStore provides an interface for interacting with the BookDataStore.
 type BookDataStore interface {
 	DeleteBooks(ids ...string) error
-	InsertBooks(books []books.Book) error
 	ReadBookByISBN(isbn string) (books.Book, error)
 	ReadBooks() ([]books.Book, error)
 	UpsertBooks(books []books.Book) error
 }
 
-// Service is a wrapper for the custom field fielddata business logic.
+// Service is a wrapper for the bookshop service business logic.
 type Service struct {
 	bookStore BookDataStore
 }
 
+// NewService returns a Service type value.
 func NewService(bs BookDataStore) Service {
 	return Service{
 		bookStore: bs,
 	}
 }
 
-// AddBooks
+// AddBook add a book from the given title and isbn if the isbn does not already exist.
 func (s *Service) AddBook(title, isbn string) (books.Book, error) {
 	//make sure book doesn't already exist
 	extant, err := s.bookStore.ReadBookByISBN(isbn)
@@ -47,13 +47,21 @@ func (s *Service) AddBook(title, isbn string) (books.Book, error) {
 			ISBN:  books.ISBN(isbn),
 		},
 	}
-	if err := s.bookStore.InsertBooks(bks); err != nil {
+	if err := s.bookStore.UpsertBooks(bks); err != nil {
 		return books.Book{}, err
 	}
 
-	return books.Book{}, nil
+	return bks[0], nil
 }
 
-func (s *Service) AllBooks() ([]books.Book, error) {
+func (s *Service) GetAllBooks() ([]books.Book, error) {
 	return s.bookStore.ReadBooks()
+}
+
+func (s *Service) RemoveBooks(ids ...string) error {
+	return s.bookStore.DeleteBooks(ids...)
+}
+
+func (s *Service) UpdateBook(bk books.Book) error {
+	return s.bookStore.UpsertBooks([]books.Book{bk})
 }

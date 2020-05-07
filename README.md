@@ -13,11 +13,15 @@ Let's show how to do an onion architecture backend.
 
 TODO:
 
+- [x] go-pgtesthelper (ephemeral test db's)
+
 - [ ] persistant db store and tests
   - [x] books
   - [ ] authors
 - [ ] service layer with business logic and tests
-  - [ ] books
+  - [x] books
   - [ ] authors
 - [ ] http REST server and tests
+  - [ ] books
+  - [ ] authors
 

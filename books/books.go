@@ -36,27 +36,6 @@ func (s *BookStore) ReadBookByISBN(isbn string) (Book, error) {
 	return bk, nil
 }
 
-// InsertBooks will insert a list of books.
-func (s *BookStore) InsertBooks(bks []Book) error {
-	tx := s.db.MustBegin()
-	bookIns :=
-		`INSERT INTO books (id, title, isbn, updated_at)
-			        VALUES (:id, :title, :isbn, NOW());`
-	for _, book := range bks {
-		_, err := tx.NamedExec(bookIns, book)
-		if err != nil {
-			if err := tx.Rollback(); err != nil {
-				return err
-			}
-			return err
-		}
-	}
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	return nil
-}
-
 // DeleteBooks will delete of books by their ID.
 func (s *BookStore) DeleteBooks(ids ...string) error {
 	if len(ids) == 0 {

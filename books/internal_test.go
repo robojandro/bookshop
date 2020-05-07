@@ -44,24 +44,6 @@ func TestBooks(t *testing.T) {
 		assert.Equal(t, "9783161484100", string(bk.ISBN))
 	})
 
-	t.Run("InsertBooks", func(t *testing.T) {
-		bks := []books.Book{
-			{
-				ID:    "abc02",
-				Title: "titleB",
-				ISBN:  "2222222222222",
-			},
-		}
-		err := store.InsertBooks(bks)
-		require.NoError(t, err)
-
-		results, err := store.ReadBooks()
-		assert.Len(t, results, 2)
-		assert.Equal(t, bks[0].ID, results[1].ID)
-		assert.Equal(t, bks[0].Title, results[1].Title)
-		assert.Equal(t, bks[0].ISBN, results[1].ISBN)
-	})
-
 	t.Run("DeleteBooks", func(t *testing.T) {
 		bks := []books.Book{
 			{
@@ -75,7 +57,7 @@ func TestBooks(t *testing.T) {
 				ISBN:  "4444444444444",
 			},
 		}
-		err := store.InsertBooks(bks)
+		err := store.UpsertBooks(bks)
 		require.NoError(t, err)
 
 		err = store.DeleteBooks("def03", "ghi04")
@@ -96,14 +78,17 @@ func TestBooks(t *testing.T) {
 		err := h.CleanTables([]string{"books"})
 		require.NoError(t, err)
 
-		bks := []books.Book{
-			{
-				ID:    "abc01",
-				Title: "titleA",
-				ISBN:  "1111111111111",
+		bks := mockContents{
+			[]books.Book{
+				books.Book{
+					ID:    "abc01",
+					Title: "titleA",
+					ISBN:  "1111111111111",
+				},
 			},
 		}
-		err = store.InsertBooks(bks)
+
+		err = insertTestData(dbh, bks)
 		require.NoError(t, err)
 
 		upsert := []books.Book{
