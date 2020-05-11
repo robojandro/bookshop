@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"bookshop/books"
 	"bookshop/datastore"
-
-	"github.com/kr/pretty"
+	"bookshop/service"
 )
 
 func main() {
@@ -28,12 +28,16 @@ func main() {
 		panic(err)
 	}
 
-	store := books.NewBookStore(data)
-	books, err := store.ReadBooks()
-	if err != nil {
-		panic(err)
+	bookStore := books.NewBookStore(data)
+	service := service.NewService(&bookStore)
+	httpServer := NewHTTPServer(&service)
+
+	srv := &http.Server{
+		Handler:      httpServer,
+		Addr:         "127.0.0.1:8080",
+		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  30 * time.Second,
 	}
 
-	fmt.Printf("books: % #v\n", pretty.Formatter(books))
-	//fmt.Printf("ISBN: %s\n", books[0].ISBN)
+	log.Fatal(srv.ListenAndServe())
 }

@@ -17,6 +17,11 @@ type BookDataStore interface {
 	UpsertBooks(books []books.Book) error
 }
 
+// SVC is an interface that fulfills bookshop service calls.
+type SVC interface {
+	ListBooks() ([]books.Book, error)
+}
+
 // Service is a wrapper for the bookshop service business logic.
 type Service struct {
 	bookStore BookDataStore
@@ -54,7 +59,7 @@ func (s *Service) AddBook(title, isbn string) (books.Book, error) {
 	return bks[0], nil
 }
 
-func (s *Service) GetAllBooks() ([]books.Book, error) {
+func (s *Service) ListBooks() ([]books.Book, error) {
 	return s.bookStore.ReadBooks()
 }
 

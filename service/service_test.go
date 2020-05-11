@@ -48,7 +48,7 @@ func TestService(t *testing.T) {
 		})
 	})
 
-	t.Run("GetAllBooks", func(t *testing.T) {
+	t.Run("ListBooks", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			mockBkStore := &mockBookStore{}
 			srv := service.NewService(mockBkStore)
@@ -61,7 +61,7 @@ func TestService(t *testing.T) {
 				},
 			}
 
-			results, err := srv.GetAllBooks()
+			results, err := srv.ListBooks()
 			assert.NoError(t, err)
 			assert.Len(t, results, 1)
 			assert.Equal(t, mockBooks, results)
@@ -73,7 +73,7 @@ func TestService(t *testing.T) {
 			mockBooks = nil
 			mockBooksErr = errors.New("datastore error")
 
-			results, err := srv.GetAllBooks()
+			results, err := srv.ListBooks()
 			assert.Error(t, err)
 			assert.Nil(t, results)
 		})

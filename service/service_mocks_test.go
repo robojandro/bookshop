@@ -12,12 +12,12 @@ func (m *mockBookStore) DeleteBooks(ids ...string) error {
 	return mockBooksErr
 }
 
-func (m *mockBookStore) ReadBooks() ([]books.Book, error) {
-	return mockBooks, mockBooksErr
-}
-
 func (m *mockBookStore) ReadBookByISBN(isbn string) (books.Book, error) {
 	return mockBook, mockBooksErr
+}
+
+func (m *mockBookStore) ReadBooks() ([]books.Book, error) {
+	return mockBooks, mockBooksErr
 }
 
 func (m *mockBookStore) UpsertBooks(books []books.Book) error {
