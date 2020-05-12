@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,13 +25,48 @@ func NewHTTPServer(svc service.SVC) *HTTPServer {
 		svc:    svc,
 		router: r,
 	}
-	s.router.HandleFunc("/books", s.ListBooks)
+
+	bookRouter := s.router.PathPrefix("/books").Subrouter()
+	{
+		bookRouter.Methods(http.MethodGet).HandlerFunc(s.ListBooks)
+		bookRouter.Methods(http.MethodPost).HandlerFunc(s.AddBook)
+	}
 	return &s
 }
 
 // ServeHTTP wraps router ServeHTTP calls calls.
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	s.router.ServeHTTP(w, r)
+}
+
+type bookBody struct {
+	Title string `json:"title"`
+	ISBN  string `json:"isbn"`
+}
+
+// AddBook adds a book generating it's UUID if it doesn't already exist.
+func (s *HTTPServer) AddBook(w http.ResponseWriter, r *http.Request) {
+	var bk bookBody
+	if err := json.NewDecoder(r.Body).Decode(&bk); err != nil {
+		s.handleError(w, "request", err)
+		return
+	}
+
+	created, err := s.svc.AddBook(bk.Title, bk.ISBN)
+	if err != nil {
+		s.handleError(w, "service", err)
+		return
+	}
+
+	added, err := json.Marshal(created)
+	if err != nil {
+		s.handleError(w, "other", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	s.serve(w, added)
 }
 
 // ListBooks answers requests to list books.
@@ -61,8 +97,12 @@ func (s *HTTPServer) serve(w http.ResponseWriter, v []byte) {
 func (s *HTTPServer) handleError(w http.ResponseWriter, kind string, err error) {
 	log.Print(err)
 	code := http.StatusInternalServerError
-	switch kind {
-	case "request":
+
+	if kind == "service" && errors.Is(err, service.ErrDuplicate) {
+		code = http.StatusUnprocessableEntity
+	}
+
+	if kind == "request" {
 		code = http.StatusBadRequest
 	}
 	http.Error(w, fmt.Sprint(err), code)

@@ -1,11 +1,14 @@
 package main
 
 import (
-	"bookshop/books"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"bookshop/books"
+	"bookshop/service"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -29,16 +32,12 @@ func TestHTTPServer(t *testing.T) {
 					},
 				}
 
-				req, err := http.NewRequest("GET", "/books", nil)
-				if err != nil {
-					t.Fatal(err)
-				}
-				resp := makeRequest(req)
+				resp := makeRequest(t, "GET", "/books", "")
 
-				require.Equal(t, resp.Code, http.StatusOK)
+				require.Equal(t, http.StatusOK, resp.Code)
 
 				var content []books.Book
-				err = json.NewDecoder(resp.Body).Decode(&content)
+				err := json.NewDecoder(resp.Body).Decode(&content)
 				require.NoError(t, err)
 				assert.Equal(t, mockBooks, content)
 			})
@@ -47,20 +46,60 @@ func TestHTTPServer(t *testing.T) {
 				mockBooks = nil
 				mockBooksErr = errors.New("service error")
 
-				req, err := http.NewRequest("GET", "/books", nil)
-				if err != nil {
-					t.Fatal(err)
-				}
-				resp := makeRequest(req)
+				resp := makeRequest(t, "GET", "/books", "")
 
-				assert.Equal(t, resp.Body.String(), "service error\n")
-				assert.Equal(t, resp.Code, http.StatusInternalServerError)
+				assert.Equal(t, "service error\n", resp.Body.String())
+				assert.Equal(t, http.StatusInternalServerError, resp.Code)
+			})
+		})
+
+		t.Run("POST", func(t *testing.T) {
+			t.Run("happy", func(t *testing.T) {
+				mockBooksErr = nil
+				mockBook = books.Book{
+					ID:    "abc01",
+					Title: "title3",
+					ISBN:  "999999999",
+				}
+
+				resp := makeRequest(t, "POST", "/books", `{"title": "title03", "isbn": "999999999"}`)
+
+				require.Equal(t, http.StatusCreated, resp.Code)
+
+				var content books.Book
+				err := json.NewDecoder(resp.Body).Decode(&content)
+				require.NoError(t, err)
+				assert.Equal(t, mockBook, content)
+			})
+
+			t.Run("duplicate", func(t *testing.T) {
+				mockBook = books.Book{}
+				mockBooksErr = service.NewErrDuplicate("title03")
+
+				resp := makeRequest(t, "POST", "/books", `{"title": "title03", "isbn": "999999999"}`)
+				require.Equal(t, http.StatusUnprocessableEntity, resp.Code)
+
+				assert.Equal(t, mockBooksErr.Error(), strings.TrimSpace(resp.Body.String()))
+			})
+
+			t.Run("service error", func(t *testing.T) {
+				mockBook = books.Book{}
+				mockBooksErr = errors.New("service error")
+
+				resp := makeRequest(t, "POST", "/books", `{"title": "title03", "isbn": "999999999"}`)
+				require.Equal(t, http.StatusInternalServerError, resp.Code)
 			})
 		})
 	})
 }
 
-func makeRequest(req *http.Request) *httptest.ResponseRecorder {
+func makeRequest(t *testing.T, kind, path, bodyStr string) *httptest.ResponseRecorder {
+	bd := strings.NewReader(bodyStr)
+	req, err := http.NewRequest(kind, path, bd)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	svc := &mockService{}
 	httpServer := NewHTTPServer(svc)
 	resp := httptest.NewRecorder()
@@ -70,8 +109,13 @@ func makeRequest(req *http.Request) *httptest.ResponseRecorder {
 
 type mockService struct{}
 
+var mockBook books.Book
 var mockBooks []books.Book
 var mockBooksErr error
+
+func (m *mockService) AddBook(title, isbn string) (books.Book, error) {
+	return mockBook, mockBooksErr
+}
 
 func (m *mockService) ListBooks() ([]books.Book, error) {
 	return mockBooks, mockBooksErr

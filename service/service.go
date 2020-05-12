@@ -5,7 +5,6 @@ import (
 
 	"bookshop/books"
 
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -19,6 +18,7 @@ type BookDataStore interface {
 
 // SVC is an interface that fulfills bookshop service calls.
 type SVC interface {
+	AddBook(title, isbn string) (books.Book, error)
 	ListBooks() ([]books.Book, error)
 }
 
@@ -42,7 +42,7 @@ func (s *Service) AddBook(title, isbn string) (books.Book, error) {
 		return books.Book{}, err
 	}
 	if isbn == string(extant.ISBN) {
-		return books.Book{}, errors.Errorf("isbn already exists with title: %s", extant.Title)
+		return books.Book{}, NewErrDuplicate(title)
 	}
 
 	bks := []books.Book{
