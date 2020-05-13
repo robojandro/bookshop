@@ -22,6 +22,6 @@ TODO:
   - [x] books
   - [ ] authors
 - [ ] http REST server and tests
-  - [ ] books
+  - [x] books
   - [ ] authors
 
