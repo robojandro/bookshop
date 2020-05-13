@@ -53,6 +53,57 @@ func TestHTTPServer(t *testing.T) {
 			})
 		})
 
+		t.Run("DELETE", func(t *testing.T) {
+			t.Run("happy", func(t *testing.T) {
+				mockBooksErr = nil
+				resp := makeRequest(t, "DELETE", "/books/abc01", "")
+				require.Equal(t, http.StatusAccepted, resp.Code)
+			})
+
+			t.Run("empty id", func(t *testing.T) {
+				mockBooksErr = errors.New("book_id cannot be blank")
+				resp := makeRequest(t, "DELETE", "/books/ ", "")
+				require.Equal(t, http.StatusBadRequest, resp.Code)
+			})
+
+			t.Run("service error", func(t *testing.T) {
+				mockBooksErr = errors.New("service error")
+				resp := makeRequest(t, "DELETE", "/books/abc01", "")
+				require.Equal(t, http.StatusInternalServerError, resp.Code)
+			})
+		})
+
+		t.Run("PATCH", func(t *testing.T) {
+			t.Run("happy", func(t *testing.T) {
+				mockBooksErr = nil
+				resp := makeRequest(t, "PATCH", "/books", `{
+				  "id": "abc01",
+				  "title": "UPDATED TITLE",
+				  "isbn": "999999999"
+				}`)
+				require.Equal(t, http.StatusAccepted, resp.Code)
+			})
+
+			t.Run("missing id", func(t *testing.T) {
+				mockBooksErr = nil
+				resp := makeRequest(t, "PATCH", "/books", `{
+				  "title": "UPDATED TITLE",
+				  "isbn": "999999999"
+				}`)
+				require.Equal(t, http.StatusBadRequest, resp.Code)
+			})
+
+			t.Run("service error", func(t *testing.T) {
+				mockBooksErr = errors.New("service error")
+				resp := makeRequest(t, "PATCH", "/books", `{
+				  "id": "abc01",
+				  "title": "UPDATED TITLE",
+				  "isbn": "999999999"
+				}`)
+				require.Equal(t, http.StatusInternalServerError, resp.Code)
+			})
+		})
+
 		t.Run("POST", func(t *testing.T) {
 			t.Run("happy", func(t *testing.T) {
 				mockBooksErr = nil
@@ -119,4 +170,12 @@ func (m *mockService) AddBook(title, isbn string) (books.Book, error) {
 
 func (m *mockService) ListBooks() ([]books.Book, error) {
 	return mockBooks, mockBooksErr
+}
+
+func (m *mockService) RemoveBooks(ids ...string) error {
+	return mockBooksErr
+}
+
+func (m *mockService) UpdateBook(bk books.Book) error {
+	return mockBooksErr
 }

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
+	"bookshop/books"
 	"bookshop/service"
 
 	"github.com/gorilla/mux"
@@ -30,6 +32,9 @@ func NewHTTPServer(svc service.SVC) *HTTPServer {
 	{
 		bookRouter.Methods(http.MethodGet).HandlerFunc(s.ListBooks)
 		bookRouter.Methods(http.MethodPost).HandlerFunc(s.AddBook)
+		bookRouter.Methods(http.MethodPatch).HandlerFunc(s.UpdateBook)
+
+		bookRouter.Methods(http.MethodDelete).Path("/{book_id}").HandlerFunc(s.RemoveBook)
 	}
 	return &s
 }
@@ -41,11 +46,12 @@ func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type bookBody struct {
+	ID    string `json:"id"`
 	Title string `json:"title"`
 	ISBN  string `json:"isbn"`
 }
 
-// AddBook adds a book generating it's UUID if it doesn't already exist.
+// AddBook adds a book generating its UUID if it doesn't already exist.
 func (s *HTTPServer) AddBook(w http.ResponseWriter, r *http.Request) {
 	var bk bookBody
 	if err := json.NewDecoder(r.Body).Decode(&bk); err != nil {
@@ -84,6 +90,49 @@ func (s *HTTPServer) ListBooks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.serve(w, bkList)
+}
+
+// RemoveBook removes a book by its UUID if it exists.
+func (s *HTTPServer) RemoveBook(w http.ResponseWriter, r *http.Request) {
+	bkID := mux.Vars(r)["book_id"]
+	if strings.TrimSpace(bkID) == "" {
+		s.handleError(w, "request", errors.New("book ID cannot be blank"))
+		return
+	}
+
+	if err := s.svc.RemoveBooks(bkID); err != nil {
+		s.handleError(w, "service", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	s.serve(w, []byte{})
+}
+
+// UpdateBook updates a book based on it's
+func (s *HTTPServer) UpdateBook(w http.ResponseWriter, r *http.Request) {
+	var bk bookBody
+	if err := json.NewDecoder(r.Body).Decode(&bk); err != nil {
+		s.handleError(w, "request", err)
+		return
+	}
+
+	if strings.TrimSpace(bk.ID) == "" {
+		s.handleError(w, "request", errors.New("book ID cannot be blank"))
+		return
+	}
+
+	err := s.svc.UpdateBook(books.Book{
+		ID:    bk.ID,
+		Title: bk.Title,
+		ISBN:  books.ISBN(bk.ISBN),
+	})
+	if err != nil {
+		s.handleError(w, "service", err)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+	s.serve(w, []byte{})
 }
 
 func (s *HTTPServer) serve(w http.ResponseWriter, v []byte) {

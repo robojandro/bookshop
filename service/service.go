@@ -19,7 +19,9 @@ type BookDataStore interface {
 // SVC is an interface that fulfills bookshop service calls.
 type SVC interface {
 	AddBook(title, isbn string) (books.Book, error)
+	RemoveBooks(ids ...string) error
 	ListBooks() ([]books.Book, error)
+	UpdateBook(bk books.Book) error
 }
 
 // Service is a wrapper for the bookshop service business logic.
@@ -59,14 +61,17 @@ func (s *Service) AddBook(title, isbn string) (books.Book, error) {
 	return bks[0], nil
 }
 
+// ListBooks will return a list of books.Book.
 func (s *Service) ListBooks() ([]books.Book, error) {
 	return s.bookStore.ReadBooks()
 }
 
+// RemoveBooks will remove a list of books by the given book.Book IDs.
 func (s *Service) RemoveBooks(ids ...string) error {
 	return s.bookStore.DeleteBooks(ids...)
 }
 
+// UpdateBook will update the given book with the information from the request.
 func (s *Service) UpdateBook(bk books.Book) error {
 	return s.bookStore.UpsertBooks([]books.Book{bk})
 }
