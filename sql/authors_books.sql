@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS books (
 );
 
 CREATE TABLE IF NOT EXISTS books_authors (
-	book_id varchar(36) NOT NULL,
-	author_id varchar(36) NOT NULL,
+	book_id varchar(36) NOT NULL REFERENCES books (id) ON DELETE CASCADE,
+	author_id varchar(36) NOT NULL REFERENCES authors (id) ON DELETE CASCADE,
 	PRIMARY KEY(book_id, author_id)
 );
 

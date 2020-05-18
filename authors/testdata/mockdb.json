@@ -1,0 +1,18 @@
+{
+	"authors" : [
+    {
+      "id":"0b5babb0-96d8-11ea-bb37-0242ac130002",
+      "first_name":"first",
+      "middle_name":"middle",
+      "last_name":"last",
+      "dob":"1970-01-01"
+    }
+  ],
+	"books" : [
+    {
+      "id":"cb0b9721-7631-4b2a-94a2-493c559da893",
+      "title":"titleA",
+      "isbn":"9783161484100"
+    }
+  ]
+}
