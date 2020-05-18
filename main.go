@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"bookshop/authors"
 	"bookshop/books"
 	"bookshop/datastore"
 	"bookshop/service"
@@ -29,7 +30,8 @@ func main() {
 	}
 
 	bookStore := books.NewBookStore(data)
-	service := service.NewService(&bookStore)
+	authStore := authors.NewAuthorStore(data)
+	service := service.NewService(&authStore, &bookStore)
 	httpServer := NewHTTPServer(&service)
 
 	srv := &http.Server{

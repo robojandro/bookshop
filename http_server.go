@@ -36,6 +36,11 @@ func NewHTTPServer(svc service.SVC) *HTTPServer {
 
 		bookRouter.Methods(http.MethodDelete).Path("/{book_id}").HandlerFunc(s.RemoveBook)
 	}
+
+	authRouter := s.router.PathPrefix("/authors").Subrouter()
+	{
+		authRouter.Methods(http.MethodGet).Path("/{author_id}").HandlerFunc(s.GetAuthor)
+	}
 	return &s
 }
 
@@ -43,6 +48,28 @@ func NewHTTPServer(svc service.SVC) *HTTPServer {
 func (s *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	s.router.ServeHTTP(w, r)
+}
+
+// GetAuthor answers a request for a single Author and their books.
+func (s *HTTPServer) GetAuthor(w http.ResponseWriter, r *http.Request) {
+	authID := mux.Vars(r)["author_id"]
+	if strings.TrimSpace(authID) == "" {
+		s.handleError(w, "request", errors.New("author ID cannot be blank"))
+		return
+	}
+
+	auth, err := s.svc.GetAuthor(authID)
+	if err != nil {
+		s.handleError(w, "service", err)
+		return
+	}
+
+	authResp, err := json.Marshal(auth)
+	if err != nil {
+		s.handleError(w, "other", err)
+		return
+	}
+	s.serve(w, authResp)
 }
 
 type bookBody struct {

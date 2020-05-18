@@ -2,20 +2,67 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"bookshop/authors"
 	"bookshop/books"
 	"bookshop/service"
 
+	"github.com/kr/pretty"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHTTPServer(t *testing.T) {
+	t.Run("authors", func(t *testing.T) {
+		//dt, err := time.Parse(authors.DateParsingFormat, "1970-01-01")
+		//require.NoError(t, err)
+
+		t.Run("GET", func(t *testing.T) {
+			t.Run("happy", func(t *testing.T) {
+				mockAuth = authors.Author{
+					ID:         "auth01",
+					FirstName:  "First",
+					MiddleName: "Middle",
+					LastName:   "Last",
+					//DOB:        &dt,
+					Books: []books.Book{
+						{
+							ID:    "abc01",
+							Title: "titleA",
+							ISBN:  "9783161484100",
+						},
+					},
+				}
+
+				resp := makeRequest(t, "GET", "/authors/auth01", "")
+
+				require.Equal(t, http.StatusOK, resp.Code)
+
+				var content authors.Author
+				fmt.Printf("resp.Body: %s\n", resp.Body)
+				err := json.NewDecoder(resp.Body).Decode(&content)
+				fmt.Printf("content: % #v\n", pretty.Formatter(content))
+				require.NoError(t, err)
+				assert.Equal(t, mockAuth.ID, content.ID)
+				assert.Equal(t, mockAuth.FirstName, content.FirstName)
+				assert.Equal(t, mockAuth.MiddleName, content.MiddleName)
+				assert.Equal(t, mockAuth.LastName, content.LastName)
+
+				fmt.Printf("content.Books: % #v\n", pretty.Formatter(content.Books))
+				/*
+					require.Len(t, content.Books, 1)
+					assert.Equal(t, mockAuth.Books[0].Title, content.Books[0].Title)
+				*/
+			})
+		})
+	})
+
 	t.Run("books", func(t *testing.T) {
 		t.Run("GET", func(t *testing.T) {
 			t.Run("happy", func(t *testing.T) {
@@ -178,4 +225,11 @@ func (m *mockService) RemoveBooks(ids ...string) error {
 
 func (m *mockService) UpdateBook(bk books.Book) error {
 	return mockBooksErr
+}
+
+var mockAuth authors.Author
+var mockAuthErr error
+
+func (m *mockService) GetAuthor(id string) (authors.Author, error) {
+	return mockAuth, mockAuthErr
 }

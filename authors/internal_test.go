@@ -4,7 +4,6 @@ package authors_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -35,6 +34,21 @@ func TestAuthors(t *testing.T) {
 		assert.Equal(t, "0b5babb0-96d8-11ea-bb37-0242ac130002", auths[0].ID)
 		assert.Equal(t, "first", auths[0].FirstName)
 		assert.Equal(t, "1970-01-01", auths[0].DOB.Format(authors.DateParsingFormat))
+	})
+
+	t.Run("ReadAuthorAndBooks", func(t *testing.T) {
+		auth, err := store.ReadAuthorAndBooks("0b5babb0-96d8-11ea-bb37-0242ac130002")
+		require.NoError(t, err)
+		assert.NotNil(t, auth)
+		assert.Equal(t, "0b5babb0-96d8-11ea-bb37-0242ac130002", auth.ID)
+		assert.Equal(t, "first", auth.FirstName)
+		assert.Equal(t, "1970-01-01", auth.DOB.Format(authors.DateParsingFormat))
+
+		require.Len(t, auth.Books, 2)
+		assert.Equal(t, "titleA", auth.Books[0].Title)
+		assert.Equal(t, "978-3-16-148410-0", auth.Books[0].ISBN.String())
+		assert.Equal(t, "titleB", auth.Books[1].Title)
+		assert.Equal(t, "444-4-44-444444-4", auth.Books[1].ISBN.String())
 	})
 
 	t.Run("DeleteBooks", func(t *testing.T) {
@@ -145,7 +159,6 @@ func initializeTestDB(t *testing.T) (*pgtesthelper.Helper, *sqlx.DB) {
 	var data mockContents
 	json.Unmarshal(mockData, &data)
 	require.NoError(t, err)
-	fmt.Printf("mockdb DOB parsed as string: %s\n", data.Authors[0].DOB.Format("2006-01-02"))
 	err = insertTestData(dbh, data)
 	require.NoError(t, err)
 
@@ -153,8 +166,9 @@ func initializeTestDB(t *testing.T) (*pgtesthelper.Helper, *sqlx.DB) {
 }
 
 type mockContents struct {
-	Authors []authors.Author `json:"authors"`
-	Books   []books.Book     `json:"books"`
+	Authors   []authors.Author   `json:"authors"`
+	BookAuths []authors.BookAuth `json:"books_authors"`
+	Books     []books.Book       `json:"books"`
 }
 
 func insertTestData(dbh *sqlx.DB, data mockContents) error {
@@ -171,6 +185,7 @@ func insertTestData(dbh *sqlx.DB, data mockContents) error {
 			return err
 		}
 	}
+
 	bookIn :=
 		`INSERT INTO books (id, title, isbn, updated_at)
 			        VALUES (:id, :title, :isbn, NOW());`
@@ -184,6 +199,23 @@ func insertTestData(dbh *sqlx.DB, data mockContents) error {
 		}
 	}
 	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	time.Sleep(400 * time.Millisecond)
+	tx2 := dbh.MustBegin()
+	bookAuthIn :=
+		`INSERT INTO books_authors (book_id, author_id) VALUES (:book_id, :author_id);`
+	for _, bkAuth := range data.BookAuths {
+		_, err := tx2.NamedExec(bookAuthIn, bkAuth)
+		if err != nil {
+			if err := tx2.Rollback(); err != nil {
+				return err
+			}
+			return err
+		}
+	}
+	if err := tx2.Commit(); err != nil {
 		return err
 	}
 	return nil

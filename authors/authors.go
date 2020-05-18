@@ -1,6 +1,7 @@
 package authors
 
 import (
+	"bookshop/books"
 	"strings"
 	"time"
 
@@ -25,12 +26,41 @@ func (s *AuthorStore) ReadAuthors() ([]Author, error) {
 	return auths, nil
 }
 
-// ReadAuthor will return the given author looked up author ID.
-func (s *AuthorStore) ReadAuthor(id string) (Author, error) {
-	auth := Author{}
-	row := s.db.QueryRowx("SELECT * FROM authors WHERE id=$1", id)
-	if err := row.Scan(&auth.ID, &auth.FirstName, &auth.MiddleName, &auth.LastName, &auth.DOB, &auth.UpdatedAt); err != nil {
-		return auth, errors.Wrap(err, "failed to read author")
+// ReadAuthorAndBooks will return the given author looked up author ID.
+func (s *AuthorStore) ReadAuthorAndBooks(id string) (Author, error) {
+	rows := []AuthorAndBook{}
+	sqlSt :=
+		`SELECT a.*,
+				b.id as book_id,
+				b.title as book_title,
+				b.isbn as book_isbn
+		FROM authors a, books b, books_authors ab
+		WHERE a.id = ab.author_id
+		AND b.id = ab.book_id
+		AND a.id = $1`
+	if err := s.db.Select(&rows, sqlSt, id); err != nil {
+		return Author{}, errors.Wrap(err, "failed to read author")
+	}
+	if len(rows) == 0 {
+		return Author{}, nil
+	}
+
+	var bks []books.Book
+	for _, res := range rows {
+		bks = append(bks, books.Book{
+			ID:    res.BookID,
+			Title: res.BookTitle,
+			ISBN:  books.ISBN(res.BookISBN),
+		})
+	}
+	auth := Author{
+		ID:         rows[0].ID,
+		FirstName:  rows[0].FirstName,
+		MiddleName: rows[0].MiddleName,
+		LastName:   rows[0].LastName,
+		DOB:        rows[0].DOB,
+		UpdatedAt:  rows[0].UpdatedAt,
+		Books:      bks,
 	}
 	return auth, nil
 }

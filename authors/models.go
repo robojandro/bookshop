@@ -1,6 +1,7 @@
 package authors
 
 import (
+	"bookshop/books"
 	"encoding/json"
 	"time"
 )
@@ -15,6 +16,8 @@ type Author struct {
 	LastName   string     `db:"last_name" json:"last_name,omitempty"`
 	DOB        *time.Time `db:"dob" json:"dob,omitempty"`
 	UpdatedAt  *time.Time `db:"updated_at" json:"updated_at,omitempty"`
+
+	Books []books.Book `json:"books,omitempty"`
 }
 
 // UnmarshalJSON is a custom unmarshaler that allows for passing in
@@ -52,4 +55,22 @@ func (a *Author) UnmarshalJSON(b []byte) error {
 		LastName:   out.LastName,
 	}
 	return nil
+}
+
+// AuthorAndBook is the model representing a row of combined author and book data.
+type AuthorAndBook struct {
+	ID         string     `db:"id"`
+	FirstName  string     `db:"first_name"`
+	MiddleName string     `db:"middle_name"`
+	LastName   string     `db:"last_name"`
+	DOB        *time.Time `db:"dob"`
+	UpdatedAt  *time.Time `db:"updated_at"`
+	BookID     string     `db:"book_id"`
+	BookTitle  string     `db:"book_title"`
+	BookISBN   string     `db:"book_isbn"`
+}
+
+type BookAuth struct {
+	BookID   string `db:"book_id" json:"book_id"`
+	AuthorID string `db:"author_id" json:"author_id"`
 }

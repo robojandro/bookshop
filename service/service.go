@@ -1,12 +1,16 @@
 package service
 
 import (
-	"fmt"
-
+	"bookshop/authors"
 	"bookshop/books"
 
 	uuid "github.com/satori/go.uuid"
 )
+
+// AuthorDataStore provides an interface for interacting with the AuthorDataStore.
+type AuthorDataStore interface {
+	ReadAuthorAndBooks(id string) (authors.Author, error)
+}
 
 // BookDataStore provides an interface for interacting with the BookDataStore.
 type BookDataStore interface {
@@ -19,6 +23,7 @@ type BookDataStore interface {
 // SVC is an interface that fulfills bookshop service calls.
 type SVC interface {
 	AddBook(title, isbn string) (books.Book, error)
+	GetAuthor(id string) (authors.Author, error)
 	RemoveBooks(ids ...string) error
 	ListBooks() ([]books.Book, error)
 	UpdateBook(bk books.Book) error
@@ -26,14 +31,20 @@ type SVC interface {
 
 // Service is a wrapper for the bookshop service business logic.
 type Service struct {
+	authStore AuthorDataStore
 	bookStore BookDataStore
 }
 
 // NewService returns a Service type value.
-func NewService(bs BookDataStore) Service {
+func NewService(as AuthorDataStore, bs BookDataStore) Service {
 	return Service{
+		authStore: as,
 		bookStore: bs,
 	}
+}
+
+func (s *Service) GetAuthor(id string) (authors.Author, error) {
+	return s.authStore.ReadAuthorAndBooks(id)
 }
 
 // AddBook add a book from the given title and isbn if the isbn does not already exist.
@@ -49,7 +60,7 @@ func (s *Service) AddBook(title, isbn string) (books.Book, error) {
 
 	bks := []books.Book{
 		{
-			ID:    fmt.Sprintf("%s", uuid.NewV4()),
+			ID:    uuid.NewV4().String(),
 			Title: title,
 			ISBN:  books.ISBN(isbn),
 		},
