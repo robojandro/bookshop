@@ -40,6 +40,48 @@ func TestService(t *testing.T) {
 			_, err := srv.GetAuthor("auth01")
 			assert.NoError(t, err)
 		})
+
+		t.Run("datastore error", func(t *testing.T) {
+			mockAuthStore := &mockAuthorStore{}
+			srv := service.NewService(mockAuthStore, nil)
+
+			mockAuthErr = errors.New("datastore error")
+			mockAuth = authors.Author{}
+			_, err := srv.GetAuthor("auth01")
+			assert.Error(t, err)
+		})
+	})
+
+	t.Run("ListAuthors", func(t *testing.T) {
+		t.Run("happy", func(t *testing.T) {
+			mockAuthStore := &mockAuthorStore{}
+			srv := service.NewService(mockAuthStore, nil)
+
+			mockAuthErr = nil
+			mockAuths = []authors.Author{
+				{
+					ID:         "auth01",
+					FirstName:  "First",
+					MiddleName: "Middle",
+					LastName:   "Last",
+					DOB:        &dt,
+				},
+			}
+			auths, err := srv.ListAuthors()
+			assert.NoError(t, err)
+			require.Len(t, auths, 1)
+			assert.Equal(t, mockAuths, auths)
+		})
+
+		t.Run("datastore error", func(t *testing.T) {
+			mockAuthStore := &mockAuthorStore{}
+			srv := service.NewService(mockAuthStore, nil)
+
+			mockAuthErr = errors.New("datastore error")
+			mockAuths = nil
+			_, err := srv.ListAuthors()
+			assert.Error(t, err)
+		})
 	})
 
 	t.Run("AddBook", func(t *testing.T) {

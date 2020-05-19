@@ -5,6 +5,20 @@ import (
 	"bookshop/books"
 )
 
+var mockAuth authors.Author
+var mockAuths []authors.Author
+var mockAuthErr error
+
+type mockAuthorStore struct{}
+
+func (m *mockAuthorStore) ReadAuthors() ([]authors.Author, error) {
+	return mockAuths, mockAuthErr
+}
+
+func (m *mockAuthorStore) ReadAuthorAndBooks(id string) (authors.Author, error) {
+	return mockAuth, mockAuthErr
+}
+
 var mockBook books.Book
 var mockBooksErr error
 var mockBooks []books.Book
@@ -25,13 +39,4 @@ func (m *mockBookStore) ReadBooks() ([]books.Book, error) {
 
 func (m *mockBookStore) UpsertBooks(books []books.Book) error {
 	return mockBooksErr
-}
-
-var mockAuth authors.Author
-var mockAuthErr error
-
-type mockAuthorStore struct{}
-
-func (m *mockAuthorStore) ReadAuthorAndBooks(id string) (authors.Author, error) {
-	return mockAuth, mockAuthErr
 }

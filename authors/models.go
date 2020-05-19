@@ -3,6 +3,7 @@ package authors
 import (
 	"bookshop/books"
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -31,15 +32,25 @@ func (a *Author) UnmarshalJSON(b []byte) error {
 		MiddleName string     `db:"middle_name" json:"middle_name,omitempty"`
 		LastName   string     `db:"last_name" json:"last_name,omitempty"`
 		UpdatedAt  *time.Time `db:"updated_at" json:"updated_at,omitempty"`
+
+		Books []books.Book `json:"books,omitempty"`
 	}
 	var out value
 	if err := json.Unmarshal(b, &out); err != nil {
 		return err
 	}
 
+	dateFormat := DateParsingFormat
+
+	// when data is coming directly from the database, it will include timezone
+	// information so the format must handle this case
+	if strings.Contains(out.DOB, "T00:00:00Z") {
+		dateFormat = "2006-01-02T15:04:05Z"
+	}
+
 	var parsed *time.Time
 	if out.DOB != "" {
-		t, err := time.Parse(DateParsingFormat, out.DOB)
+		t, err := time.Parse(dateFormat, out.DOB)
 		if err != nil {
 			return err
 		}
@@ -53,6 +64,7 @@ func (a *Author) UnmarshalJSON(b []byte) error {
 		FirstName:  out.FirstName,
 		MiddleName: out.MiddleName,
 		LastName:   out.LastName,
+		Books:      out.Books,
 	}
 	return nil
 }

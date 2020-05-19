@@ -9,6 +9,7 @@ import (
 
 // AuthorDataStore provides an interface for interacting with the AuthorDataStore.
 type AuthorDataStore interface {
+	ReadAuthors() ([]authors.Author, error)
 	ReadAuthorAndBooks(id string) (authors.Author, error)
 }
 
@@ -22,8 +23,10 @@ type BookDataStore interface {
 
 // SVC is an interface that fulfills bookshop service calls.
 type SVC interface {
-	AddBook(title, isbn string) (books.Book, error)
 	GetAuthor(id string) (authors.Author, error)
+	ListAuthors() ([]authors.Author, error)
+
+	AddBook(title, isbn string) (books.Book, error)
 	RemoveBooks(ids ...string) error
 	ListBooks() ([]books.Book, error)
 	UpdateBook(bk books.Book) error
@@ -43,8 +46,15 @@ func NewService(as AuthorDataStore, bs BookDataStore) Service {
 	}
 }
 
+// GetAuthor will return the details for an author by the given id including
+// their list of books.
 func (s *Service) GetAuthor(id string) (authors.Author, error) {
 	return s.authStore.ReadAuthorAndBooks(id)
+}
+
+// ListAuthors will return a list of all authors sorted by last name (ascending).
+func (s *Service) ListAuthors() ([]authors.Author, error) {
+	return s.authStore.ReadAuthors()
 }
 
 // AddBook add a book from the given title and isbn if the isbn does not already exist.

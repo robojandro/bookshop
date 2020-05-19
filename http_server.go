@@ -40,6 +40,8 @@ func NewHTTPServer(svc service.SVC) *HTTPServer {
 	authRouter := s.router.PathPrefix("/authors").Subrouter()
 	{
 		authRouter.Methods(http.MethodGet).Path("/{author_id}").HandlerFunc(s.GetAuthor)
+
+		authRouter.Methods(http.MethodGet).HandlerFunc(s.ListAuthors)
 	}
 	return &s
 }
@@ -70,6 +72,23 @@ func (s *HTTPServer) GetAuthor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.serve(w, authResp)
+}
+
+// ListAuthors answers requests to list all authors (minus books).
+func (s *HTTPServer) ListAuthors(w http.ResponseWriter, r *http.Request) {
+	auths, err := s.svc.ListAuthors()
+	if err != nil {
+		s.handleError(w, "service", err)
+		return
+	}
+
+	authList, err := json.Marshal(auths)
+	if err != nil {
+		s.handleError(w, "other", err)
+		return
+	}
+
+	s.serve(w, authList)
 }
 
 type bookBody struct {
