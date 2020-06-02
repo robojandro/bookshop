@@ -11,6 +11,10 @@ var mockAuthErr error
 
 type mockAuthorStore struct{}
 
+func (m *mockAuthorStore) DeleteAuthor(id string) error {
+	return mockAuthErr
+}
+
 func (m *mockAuthorStore) ReadAuthors() ([]authors.Author, error) {
 	return mockAuths, mockAuthErr
 }

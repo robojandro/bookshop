@@ -21,7 +21,7 @@ func TestHTTPServer(t *testing.T) {
 	dt, err := time.Parse(authors.DateParsingFormat, "1970-01-01")
 	require.NoError(t, err)
 
-	t.Run("authorsList", func(t *testing.T) {
+	t.Run("authors list", func(t *testing.T) {
 		t.Run("GET", func(t *testing.T) {
 			t.Run("happy", func(t *testing.T) {
 				mockAuths = []authors.Author{
@@ -46,7 +46,7 @@ func TestHTTPServer(t *testing.T) {
 		})
 	})
 
-	t.Run("authors_ID", func(t *testing.T) {
+	t.Run("author", func(t *testing.T) {
 		t.Run("GET", func(t *testing.T) {
 			t.Run("happy", func(t *testing.T) {
 				mockAuth = authors.Author{
@@ -80,6 +80,27 @@ func TestHTTPServer(t *testing.T) {
 				assert.Equal(t, mockAuth.Books[0].ISBN, content.Books[0].ISBN)
 			})
 		})
+
+		t.Run("DELETE", func(t *testing.T) {
+			t.Run("happy", func(t *testing.T) {
+				mockAuthErr = nil
+
+				resp := makeRequest(t, "GET", "/authors/auth01", "")
+				require.Equal(t, http.StatusOK, resp.Code)
+
+				var content authors.Author
+				err := json.NewDecoder(resp.Body).Decode(&content)
+				require.NoError(t, err)
+			})
+
+			t.Run("service error", func(t *testing.T) {
+				mockAuthErr = errors.New("service error")
+
+				resp := makeRequest(t, "GET", "/authors/auth01", "")
+				assert.Equal(t, "service error\n", resp.Body.String())
+				assert.Equal(t, http.StatusInternalServerError, resp.Code)
+			})
+		})
 	})
 
 	t.Run("books", func(t *testing.T) {
@@ -99,7 +120,6 @@ func TestHTTPServer(t *testing.T) {
 				}
 
 				resp := makeRequest(t, "GET", "/books", "")
-
 				require.Equal(t, http.StatusOK, resp.Code)
 
 				var content []books.Book
@@ -113,7 +133,6 @@ func TestHTTPServer(t *testing.T) {
 				mockBooksErr = errors.New("service error")
 
 				resp := makeRequest(t, "GET", "/books", "")
-
 				assert.Equal(t, "service error\n", resp.Body.String())
 				assert.Equal(t, http.StatusInternalServerError, resp.Code)
 			})
@@ -236,6 +255,10 @@ func (m *mockService) GetAuthor(id string) (authors.Author, error) {
 
 func (m *mockService) ListAuthors() ([]authors.Author, error) {
 	return mockAuths, mockAuthErr
+}
+
+func (m *mockService) RemoveAuthor(id string) error {
+	return mockAuthErr
 }
 
 var mockBook books.Book

@@ -40,6 +40,7 @@ func NewHTTPServer(svc service.SVC) *HTTPServer {
 	authRouter := s.router.PathPrefix("/authors").Subrouter()
 	{
 		authRouter.Methods(http.MethodGet).Path("/{author_id}").HandlerFunc(s.GetAuthor)
+		authRouter.Methods(http.MethodDelete).Path("/{author_id}").HandlerFunc(s.RemoveAuthor)
 
 		authRouter.Methods(http.MethodGet).HandlerFunc(s.ListAuthors)
 	}
@@ -89,6 +90,23 @@ func (s *HTTPServer) ListAuthors(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.serve(w, authList)
+}
+
+// RemoveAuthor removes an author by its UUID if it exists.
+func (s *HTTPServer) RemoveAuthor(w http.ResponseWriter, r *http.Request) {
+	authID := mux.Vars(r)["author_id"]
+	if strings.TrimSpace(authID) == "" {
+		s.handleError(w, "request", errors.New("author ID cannot be blank"))
+		return
+	}
+
+	if err := s.svc.RemoveAuthor(authID); err != nil {
+		s.handleError(w, "service", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	s.serve(w, []byte{})
 }
 
 type bookBody struct {

@@ -9,6 +9,7 @@ import (
 
 // AuthorDataStore provides an interface for interacting with the AuthorDataStore.
 type AuthorDataStore interface {
+	DeleteAuthor(id string) error
 	ReadAuthors() ([]authors.Author, error)
 	ReadAuthorAndBooks(id string) (authors.Author, error)
 }
@@ -25,6 +26,7 @@ type BookDataStore interface {
 type SVC interface {
 	GetAuthor(id string) (authors.Author, error)
 	ListAuthors() ([]authors.Author, error)
+	RemoveAuthor(id string) error
 
 	AddBook(title, isbn string) (books.Book, error)
 	RemoveBooks(ids ...string) error
@@ -55,6 +57,11 @@ func (s *Service) GetAuthor(id string) (authors.Author, error) {
 // ListAuthors will return a list of all authors sorted by last name (ascending).
 func (s *Service) ListAuthors() ([]authors.Author, error) {
 	return s.authStore.ReadAuthors()
+}
+
+// RemoveAuthor will delete the author from the datastore.
+func (s *Service) RemoveAuthor(id string) error {
+	return s.authStore.DeleteAuthor(id)
 }
 
 // AddBook add a book from the given title and isbn if the isbn does not already exist.

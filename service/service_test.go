@@ -84,6 +84,26 @@ func TestService(t *testing.T) {
 		})
 	})
 
+	t.Run("RemoveAuthor", func(t *testing.T) {
+		t.Run("happy", func(t *testing.T) {
+			mockAuthStore := &mockAuthorStore{}
+			srv := service.NewService(mockAuthStore, nil)
+
+			mockAuthErr = nil
+			err := srv.RemoveAuthor("auth01")
+			assert.NoError(t, err)
+		})
+
+		t.Run("datastore error", func(t *testing.T) {
+			mockAuthStore := &mockAuthorStore{}
+			srv := service.NewService(mockAuthStore, nil)
+
+			mockAuthErr = errors.New("datastore error")
+			err := srv.RemoveAuthor("auth01")
+			assert.Error(t, err)
+		})
+	})
+
 	t.Run("AddBook", func(t *testing.T) {
 		t.Run("happy", func(t *testing.T) {
 			mockBkStore := &mockBookStore{}
